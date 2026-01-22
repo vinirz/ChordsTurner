@@ -2,7 +2,7 @@
   "name": "CifraTurner Pro",
   "short_name": "CifraTurner",
   "description": "Visualizador de cifras para performances ao vivo com suporte a pedal.",
-  "start_url": "/",
+  "start_url": ".",
   "display": "fullscreen",
   "background_color": "#09090b",
   "theme_color": "#facc15",
