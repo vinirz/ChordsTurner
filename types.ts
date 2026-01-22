@@ -10,6 +10,7 @@ export interface Song {
   originalKeyIndex: number; // Tom detectado no momento do download
   currentKeyIndex: number;  // Tom selecionado pelo usuário (-1 para original)
   capo?: number;            // Posição do capotraste (0 = sem capo)
+  isLoading?: boolean;      // UI State for optimistic updates
 }
 
 export interface Setlist {

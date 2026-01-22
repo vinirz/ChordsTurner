@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { PlusCircle, FolderOpen, Trash2, Play, ChevronUp, ChevronDown, Trash2 as TrashIcon, Music, AlertTriangle } from 'lucide-react';
+import { PlusCircle, FolderOpen, Trash2, Play, ChevronUp, ChevronDown, Trash2 as TrashIcon, Music, AlertTriangle, Loader2 } from 'lucide-react';
 import { useSetlists } from '../../contexts/SetlistContext';
 import { useToast } from '../../contexts/ToastContext';
 import { KEYS } from '../../types';
@@ -49,7 +49,11 @@ function Setlists() {
   const startFullPerformance = (setlistId: string, index: number = 0) => {
     const sl = setlists.find(s => s.id === setlistId);
     if (!sl || sl.songs.length === 0) return showToast("A lista está vazia.");
-    navigate({ to: `/performance/${setlistId}`, search: { index } } as any);
+    navigate({ 
+      to: '/performance/$setlistId', 
+      params: { setlistId },
+      search: { index }
+    } as any);
   };
 
   return (
@@ -107,31 +111,35 @@ function Setlists() {
 
           <div className="bg-zinc-900/40 border border-zinc-800 rounded-3xl overflow-hidden divide-y divide-zinc-800/50">
             {currentActiveSetlist.songs.map((song, idx) => (
-              <div key={`${song.id}`} className="p-4 flex items-center gap-4 active:bg-zinc-800/50 transition-colors">
+              <div key={`${song.id}`} className={`p-4 flex items-center gap-4 active:bg-zinc-800/50 transition-colors ${song.isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="flex flex-col items-center gap-1 w-6 shrink-0">
-                    <button onClick={() => moveSong(currentActiveSetlist.id, idx, 'up')} className="text-zinc-700" disabled={idx === 0}><ChevronUp size={14} /></button>
+                    <button onClick={() => moveSong(currentActiveSetlist.id, idx, 'up')} className="text-zinc-700" disabled={idx === 0 || song.isLoading}><ChevronUp size={14} /></button>
                     <span className="text-zinc-700 text-[9px] font-black">{idx + 1}</span>
-                    <button onClick={() => moveSong(currentActiveSetlist.id, idx, 'down')} className="text-zinc-700" disabled={idx === currentActiveSetlist.songs.length - 1}><ChevronDown size={14} /></button>
+                    <button onClick={() => moveSong(currentActiveSetlist.id, idx, 'down')} className="text-zinc-700" disabled={idx === currentActiveSetlist.songs.length - 1 || song.isLoading}><ChevronDown size={14} /></button>
                 </div>
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => startFullPerformance(currentActiveSetlist.id, idx)}>
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => !song.isLoading && startFullPerformance(currentActiveSetlist.id, idx)}>
                   <div className="flex items-center gap-2">
                      <p className="font-bold text-base truncate">{song.title}</p>
-                     <div className="flex gap-1">
-                       {song.currentKeyIndex !== -1 && (
-                         <span className="text-[9px] bg-yellow-400/10 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-400/20 font-black">
-                           {KEYS.find(k => k.value === song.currentKeyIndex)?.label}
-                         </span>
-                       )}
-                       {song.capo && song.capo > 0 && (
-                         <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700 font-black">
-                           Capo {song.capo}
-                         </span>
-                       )}
-                     </div>
+                     {song.isLoading ? (
+                       <Loader2 size={12} className="animate-spin text-yellow-400" />
+                     ) : (
+                       <div className="flex gap-1">
+                         {song.currentKeyIndex !== -1 && (
+                           <span className="text-[9px] bg-yellow-400/10 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-400/20 font-black">
+                             {KEYS.find(k => k.value === song.currentKeyIndex)?.label}
+                           </span>
+                         )}
+                         {song.capo && song.capo > 0 && (
+                           <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700 font-black">
+                             Capo {song.capo}
+                           </span>
+                         )}
+                       </div>
+                     )}
                   </div>
                   <p className="text-zinc-600 text-[10px] font-bold uppercase truncate">{song.artist}</p>
                 </div>
-                <button onClick={() => removeFromSetlist(currentActiveSetlist.id, song.id)} className="p-3 text-zinc-700 active:text-red-500 shrink-0"><TrashIcon size={18} /></button>
+                <button onClick={() => removeFromSetlist(currentActiveSetlist.id, song.id)} className="p-3 text-zinc-700 active:text-red-500 shrink-0" disabled={song.isLoading}><TrashIcon size={18} /></button>
               </div>
             ))}
             {currentActiveSetlist.songs.length === 0 && (

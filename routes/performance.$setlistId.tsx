@@ -4,6 +4,7 @@ import { PerformanceView } from '../components/PerformanceView';
 import { useSetlists } from '../contexts/SetlistContext';
 import { useToast } from '../contexts/ToastContext';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface PerformanceSearch {
     index: number;
@@ -23,10 +24,19 @@ function PerformancePage() {
   const { setlistId } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { getSetlist, updateSong, updateSetlistPreference } = useSetlists();
+  const { getSetlist, updateSong, updateSetlistPreference, isLoading } = useSetlists();
   const { showToast } = useToast();
 
   const setlist = getSetlist(setlistId);
+
+  if (isLoading) {
+      return (
+          <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white gap-4">
+              <Loader2 className="animate-spin text-yellow-400" size={48} />
+              <p className="text-zinc-500 font-bold uppercase tracking-widest">Carregando...</p>
+          </div>
+      )
+  }
 
   if (!setlist) {
       return (

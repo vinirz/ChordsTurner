@@ -13,6 +13,7 @@ interface SetlistContextType {
   updateSetlistPreference: (setlistId: string, hideTabs: boolean) => void;
   getSetlist: (id: string) => Setlist | undefined;
   saveSongToSetlist: (song: Song, setlistId: string) => void;
+  isLoading: boolean;
 }
 
 const SetlistContext = createContext<SetlistContextType | undefined>(undefined);
@@ -27,6 +28,7 @@ export const useSetlists = () => {
 
 export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [setlists, setSetlists] = useState<Setlist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const saved = localStorage.getItem('cifraturner_setlists_collection');
@@ -40,6 +42,7 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.error("Failed to load setlists", e);
       }
     }
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -56,10 +59,10 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSetlists(prev => prev.filter(sl => sl.id !== id));
   };
 
-  const loadSongContent = async (solrSong: SolrSong): Promise<Song> => {
+  const loadSongContent = async (solrSong: SolrSong, id: string): Promise<Song> => {
     const result = await fetchCifraClubHtml(solrSong.d, solrSong.u);
     return {
-      id: `${solrSong.d}-${solrSong.u}-${Date.now()}`,
+      id,
       title: solrSong.m,
       artist: solrSong.a,
       artistSlug: solrSong.d,
@@ -68,7 +71,8 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
       originalContent: result.html,
       originalKeyIndex: result.originalKeyIndex,
       currentKeyIndex: -1,
-      capo: 0
+      capo: 0,
+      isLoading: false
     };
   };
 
@@ -76,15 +80,48 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!isOnline) {
       throw new Error("Conecte-se para baixar a cifra.");
     }
+
+    const tempId = `${solrSong.d}-${solrSong.u}-${Date.now()}`;
+    const tempSong: Song = {
+      id: tempId,
+      title: solrSong.m,
+      artist: solrSong.a,
+      artistSlug: solrSong.d,
+      songSlug: solrSong.u,
+      content: '', // No content yet
+      originalContent: '',
+      originalKeyIndex: -1,
+      currentKeyIndex: -1,
+      isLoading: true
+    };
+
+    // 1. Optimistic Update: Add temp song immediately
+    setSetlists(prev => prev.map(sl => 
+      sl.id === setlistId 
+        ? { ...sl, songs: [...sl.songs, tempSong] } 
+        : sl
+    ));
     
     try {
-      const song = await loadSongContent(solrSong);
+      // 2. Perform Async Operation
+      const song = await loadSongContent(solrSong, tempId);
+      
+      // 3. Success Update: Replace temp song with real data
       setSetlists(prev => prev.map(sl => 
         sl.id === setlistId 
-          ? { ...sl, songs: [...sl.songs, song] } 
+          ? { 
+              ...sl, 
+              songs: sl.songs.map(s => s.id === tempId ? song : s) 
+            } 
           : sl
       ));
     } catch (err) {
+      // 4. Error Rollback: Remove the temp song
+      setSetlists(prev => prev.map(sl => 
+        sl.id === setlistId 
+          ? { ...sl, songs: sl.songs.filter(s => s.id !== tempId) } 
+          : sl
+      ));
       throw new Error("Erro ao processar cifra.");
     }
   };
@@ -143,7 +180,8 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateSong,
       updateSetlistPreference,
       getSetlist,
-      saveSongToSetlist
+      saveSongToSetlist,
+      isLoading
     }}>
       {children}
     </SetlistContext.Provider>
