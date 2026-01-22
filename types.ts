@@ -32,3 +32,10 @@ export const KEYS = [
   { label: 'F#', value: 6 }, { label: 'G', value: 7 }, { label: 'G#', value: 8 },
   { label: 'A', value: 9 }, { label: 'A#', value: 10 }, { label: 'B', value: 11 }
 ];
+export interface SolrSong {
+  m: string; // Music title
+  a: string; // Artist name
+  u: string; // URL slug
+  d: string; // Artist slug
+  t: string; // Type (2 is song)
+}

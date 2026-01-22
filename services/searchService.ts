@@ -1,11 +1,8 @@
 
-export interface SolrSong {
-  m: string; // Music title
-  a: string; // Artist name
-  u: string; // URL slug
-  d: string; // Artist slug
-  t: string; // Type (2 is song)
-}
+import { SolrSong } from '../types';
+
+export type { SolrSong }; // Re-export for compatibility if needed, but better to use from types
+
 
 export const searchSongsExternal = async (query: string): Promise<SolrSong[]> => {
   const targetUrl = `https://solr.sscdn.co/cc/h2/?q=${encodeURIComponent(query)}`;

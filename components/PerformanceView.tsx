@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Maximize2, Minimize2, Loader2, Settings, Music, WifiOff, EyeOff, Eye, Anchor } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Maximize2, Minimize2, Loader2, Settings, Music, WifiOff, EyeOff, Eye, Anchor, ListPlus } from 'lucide-react';
 import { Song, KEYS } from '../types';
 import { transposeHtml } from '../services/transposerService';
 
@@ -11,6 +11,7 @@ interface PerformanceViewProps {
   onClose: () => void;
   onSongUpdate?: (songId: string, updatedContent: string, keyIndex: number, capo?: number) => void;
   onSetlistPreferenceUpdate?: (hideTabs: boolean) => void;
+  onAddToSetlist?: () => void;
   onError?: (msg: string) => void;
 }
 
@@ -21,6 +22,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
   onClose, 
   onSongUpdate, 
   onSetlistPreferenceUpdate,
+  onAddToSetlist,
   onError 
 }) => {
   const [currentSongIndex, setCurrentSongIndex] = useState(startIndex);
@@ -194,6 +196,11 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
                 <span>Música {currentSongIndex + 1}/{songs.length}</span>
                 <span className="text-yellow-400/50">Pág {currentPage + 1}/{totalPages}</span>
              </div>
+             {onAddToSetlist && (
+                <button onClick={onAddToSetlist} className="w-10 h-10 flex items-center justify-center text-zinc-400 active:text-yellow-400 hover:text-white">
+                  <ListPlus size={20} />
+                </button>
+             )}
              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`w-10 h-10 flex items-center justify-center transition-colors ${isMenuOpen ? 'text-yellow-400' : 'text-zinc-400 active:text-yellow-400'}`}>
                <Settings size={20} />
              </button>
@@ -321,7 +328,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
           .chord-content { 
             font-size: 1.6rem; 
             line-height: 1.8; 
-            white-space: pre !important;
+            white-space: pre-wrap !important;
           }
         }
         .chord-content * { color: inherit; background: transparent !important; }

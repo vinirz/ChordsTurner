@@ -2,6 +2,7 @@
 import React from 'react';
 import { Music, ListMusic, Search as SearchIcon } from 'lucide-react';
 import { AppMode } from '../types';
+import { Button } from '@/components/ui/button';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,20 +39,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeMode, setMode, i
           </div>
           
           <nav className="flex items-center gap-1">
-            <button 
+            <Button 
+              variant={activeMode === 'SEARCH' ? 'default' : 'ghost'}
               onClick={() => setMode('SEARCH')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all active:scale-90 ${activeMode === 'SEARCH' ? 'bg-yellow-400 text-zinc-950 font-bold' : 'hover:bg-zinc-800 text-zinc-400'}`}
+              className={`gap-2 rounded-xl transition-all active:scale-90 ${activeMode === 'SEARCH' ? 'bg-yellow-400 hover:bg-yellow-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}`}
             >
               <SearchIcon size={20} />
               <span className="hidden xs:inline text-sm">Buscar</span>
-            </button>
-            <button 
+            </Button>
+            <Button 
+              variant={activeMode === 'SETLISTS' ? 'default' : 'ghost'}
               onClick={() => setMode('SETLISTS')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all active:scale-90 ${activeMode === 'SETLISTS' ? 'bg-yellow-400 text-zinc-950 font-bold' : 'hover:bg-zinc-800 text-zinc-400'}`}
+              className={`gap-2 rounded-xl transition-all active:scale-90 ${activeMode === 'SETLISTS' ? 'bg-yellow-400 hover:bg-yellow-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}`}
             >
               <ListMusic size={20} />
               <span className="hidden xs:inline text-sm">Setlists</span>
-            </button>
+            </Button>
           </nav>
         </div>
       </header>
