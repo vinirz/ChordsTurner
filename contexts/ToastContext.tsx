@@ -25,7 +25,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ showToast }}>
       {children}
       {toast && (
-        <div className={`fixed top-[calc(1rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[200] w-[95vw] max-w-sm px-4 py-3 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-300 shadow-2xl border ${
+        <div className={`fixed top-[calc(1rem+env(safe-area-inset-top))] inset-x-0 mx-auto z-[200] w-[95vw] max-w-sm px-4 py-3 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-300 shadow-2xl border ${
           toast.type === 'error' ? 'bg-red-950/90 border-red-500/50 text-red-200' : 
           toast.type === 'info' ? 'bg-zinc-900/90 border-zinc-700 text-white' : 'bg-green-950/90 border-green-500/50 text-green-200'
         }`}>
