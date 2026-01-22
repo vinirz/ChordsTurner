@@ -1,18 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Setlist, Song, SolrSong } from '../types';
 import { fetchCifraClubHtml } from '../services/chordService';
+import { transposeHtml } from '../services/transposerService';
 
 interface SetlistContextType {
   setlists: Setlist[];
   createSetlist: (name: string) => Setlist;
   deleteSetlist: (id: string) => void;
-  addToSetlist: (solrSong: SolrSong, setlistId: string, isOnline: boolean) => Promise<void>;
+  addToSetlist: (solrSong: SolrSong, setlistId: string, isOnline: boolean, options?: { key?: number, capo?: number }) => Promise<void>;
   removeFromSetlist: (setlistId: string, songId: string) => void;
   moveSong: (setlistId: string, songIndex: number, direction: 'up' | 'down') => void;
   updateSong: (songId: string, updatedContent: string, keyIndex: number, capo?: number) => void;
   updateSetlistPreference: (setlistId: string, hideTabs: boolean) => void;
   getSetlist: (id: string) => Setlist | undefined;
   saveSongToSetlist: (song: Song, setlistId: string) => void;
+  importSetlist: (url: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -59,24 +61,30 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSetlists(prev => prev.filter(sl => sl.id !== id));
   };
 
-  const loadSongContent = async (solrSong: SolrSong, id: string): Promise<Song> => {
+  const loadSongContent = async (solrSong: SolrSong, id: string, options?: { key?: number, capo?: number }): Promise<Song> => {
     const result = await fetchCifraClubHtml(solrSong.d, solrSong.u);
+    
+    let finalContent = result.html;
+    if (options?.key !== undefined && options.key !== -1 && result.originalKeyIndex !== -1) {
+      finalContent = transposeHtml(result.html, result.originalKeyIndex, options.key);
+    }
+
     return {
       id,
       title: solrSong.m,
       artist: solrSong.a,
       artistSlug: solrSong.d,
       songSlug: solrSong.u,
-      content: result.html,
+      content: finalContent,
       originalContent: result.html,
       originalKeyIndex: result.originalKeyIndex,
-      currentKeyIndex: -1,
-      capo: 0,
+      currentKeyIndex: options?.key ?? -1,
+      capo: options?.capo ?? 0,
       isLoading: false
     };
   };
 
-  const addToSetlist = async (solrSong: SolrSong, setlistId: string, isOnline: boolean) => {
+  const addToSetlist = async (solrSong: SolrSong, setlistId: string, isOnline: boolean, options?: { key?: number, capo?: number }) => {
     if (!isOnline) {
       throw new Error("Conecte-se para baixar a cifra.");
     }
@@ -91,7 +99,8 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
       content: '', // No content yet
       originalContent: '',
       originalKeyIndex: -1,
-      currentKeyIndex: -1,
+      currentKeyIndex: options?.key ?? -1,
+      capo: options?.capo ?? 0,
       isLoading: true
     };
 
@@ -104,7 +113,7 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     try {
       // 2. Perform Async Operation
-      const song = await loadSongContent(solrSong, tempId);
+      const song = await loadSongContent(solrSong, tempId, options);
       
       // 3. Success Update: Replace temp song with real data
       setSetlists(prev => prev.map(sl => 
@@ -167,6 +176,34 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
     ));
   };
 
+  const importSetlist = async (url: string) => {
+    const { fetchCifraClubSetlist } = await import('../services/chordService');
+    const data = await fetchCifraClubSetlist(url);
+    
+    // Create new setlist
+    const newSl = createSetlist(data.name);
+    
+    // Process songs sequentially to avoid overwhelming the proxy
+    // We can fire these off. The addToSetlist function already handles optimistic updates.
+    // We just need to map NormalizedSong to SolrSong-like structure for addToSetlist
+    
+    for (const song of data.songs) {
+       // Mock SolrSong structure required by addToSetlist
+       const solrSong: SolrSong = {
+         m: song.name,
+         a: song.artist,
+         u: song.songSlug,
+         d: song.artistSlug,
+         t: "2"
+       };
+       // We ignore errors here to allow partial imports
+       addToSetlist(solrSong, newSl.id, true, { key: song.key, capo: song.capo }).catch(err => console.error(`Failed to import ${song.name}`, err));
+       
+       // Small delay to be nice to the proxy
+       await new Promise(r => setTimeout(r, 500));
+    }
+  };
+
   const getSetlist = (id: string) => setlists.find(sl => sl.id === id);
 
   return (
@@ -181,6 +218,7 @@ export const SetlistProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateSetlistPreference,
       getSetlist,
       saveSongToSetlist,
+      importSetlist,
       isLoading
     }}>
       {children}

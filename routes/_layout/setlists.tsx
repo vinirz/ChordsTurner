@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { PlusCircle, FolderOpen, Trash2, Play, ChevronUp, ChevronDown, Trash2 as TrashIcon, Music, AlertTriangle, Loader2 } from 'lucide-react';
+import { PlusCircle, FolderOpen, Trash2, Play, ChevronUp, ChevronDown, Trash2 as TrashIcon, Music, AlertTriangle, Loader2, Download } from 'lucide-react';
 import { useSetlists } from '../../contexts/SetlistContext';
 import { useToast } from '../../contexts/ToastContext';
 import { KEYS } from '../../types';
@@ -15,16 +15,21 @@ export const Route = createFileRoute('/_layout/setlists')({
 });
 
 function Setlists() {
-  const { setlists, createSetlist, deleteSetlist, moveSong, removeFromSetlist } = useSetlists();
+  const { setlists, createSetlist, deleteSetlist, moveSong, removeFromSetlist, importSetlist } = useSetlists();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [activeSetlistId, setActiveSetlistId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [newSetlistName, setNewSetlistName] = useState('');
+  const [importUrl, setImportUrl] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
   const [setlistToDelete, setSetlistToDelete] = useState<any | null>(null); // Type 'any' for simplicity with the Setlist type or import Setlist
 
   const currentActiveSetlist = setlists.find(sl => sl.id === activeSetlistId);
+
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   const handleCreateSetlist = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +39,22 @@ function Setlists() {
     setNewSetlistName('');
     setShowCreateModal(false);
     showToast("Setlist criada!", "success");
+  };
+
+  const handleImportSetlist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importUrl.trim()) return;
+    setIsImporting(true);
+    try {
+      await importSetlist(importUrl);
+      showToast("Importação iniciada! Músicas aparecerão em breve.", "success");
+      setImportUrl('');
+      setShowImportModal(false);
+    } catch (e) {
+      showToast("Erro ao importar lista. Verifique a URL.", "error");
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const confirmDeleteSetlist = () => {
@@ -58,14 +79,37 @@ function Setlists() {
 
   return (
     <div className="space-y-8">
+      {/* Backdrop for menu */}
+      {showAddMenu && (
+        <div className="fixed inset-0 z-10" onClick={() => setShowAddMenu(false)} />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-black tracking-tighter uppercase">Setlists</h2>
           <p className="text-zinc-600 text-[10px] font-bold uppercase tracking-widest">{setlists.length} listas no arquivo</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="bg-yellow-400 hover:bg-yellow-500 text-zinc-950 w-12 h-12 rounded-2xl p-0 shadow-lg">
-          <PlusCircle size={24} />
-        </Button>
+        
+        <div className="relative z-20">
+           <Button onClick={() => setShowAddMenu(!showAddMenu)} className={`w-12 h-12 rounded-2xl p-0 shadow-lg transition-all duration-300 ${showAddMenu ? 'bg-zinc-800 text-white rotate-45' : 'bg-yellow-400 hover:bg-yellow-500 text-zinc-950'}`}>
+            <PlusCircle size={24} />
+           </Button>
+
+           {showAddMenu && (
+             <div className="absolute top-full right-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-to-2 duration-200">
+                <div className="p-1.5 space-y-1">
+                  <button onClick={() => { setShowCreateModal(true); setShowAddMenu(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-bold text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-xl transition-colors">
+                    <PlusCircle size={16} className="text-yellow-400" />
+                    Criar Nova
+                  </button>
+                  <button onClick={() => { setShowImportModal(true); setShowAddMenu(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-bold text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-xl transition-colors">
+                    <Download size={16} className="text-yellow-400" />
+                    Importar
+                  </button>
+                </div>
+             </div>
+           )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -168,6 +212,31 @@ function Setlists() {
               onChange={(e) => setNewSetlistName(e.target.value)}
             />
             <Button type="submit" className="w-full bg-yellow-400 hover:bg-yellow-500 text-zinc-950 py-6 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg">Salvar Lista</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md w-[95%] rounded-3xl p-8">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-black tracking-tight uppercase">Importar do Cifra Club</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleImportSetlist} className="space-y-6">
+            <div className="space-y-2">
+              <Input
+                autoFocus
+                type="url"
+                placeholder="Cole a URL da lista aqui..."
+                className="bg-zinc-800 border-zinc-700 rounded-2xl py-6 text-white focus-visible:ring-yellow-400"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+              />
+              <p className="text-[10px] text-zinc-500 font-medium">Ex: https://www.cifraclub.com.br/usuario/repertorio/12345/</p>
+            </div>
+            <Button disabled={isImporting} type="submit" className="w-full bg-yellow-400 hover:bg-yellow-500 text-zinc-950 py-6 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center gap-2 justify-center">
+              {isImporting ? <Loader2 className="animate-spin" /> : <Download size={18} />}
+              {isImporting ? 'Importando...' : 'Importar Lista'}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>

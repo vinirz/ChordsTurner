@@ -93,3 +93,15 @@ export const noteToIndex = (note: string): number => {
   
   return CHROMATIC_SCALE.indexOf(normalized);
 };
+
+/**
+ * Converte o índice de tom do Cifra Club (A=0) para o índice interno do app (C=0)
+ * CC: A=0, Bb=1, B=2, C=3 ...
+ * App: A=9, Bb=10, B=11, C=0 ...
+ */
+export const mapCifraClubKeyToIndex = (ccIndex: number): number => {
+  // A=0 -> App A=9. Diferença = +9.
+  // (index + 9) % 12
+  let mapped = (ccIndex + 9) % 12;
+  return mapped;
+};
