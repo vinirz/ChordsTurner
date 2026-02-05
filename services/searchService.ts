@@ -1,5 +1,6 @@
 
 import { SolrSong } from '../types';
+import { fetchWithProxy } from "./proxyService";
 
 export type { SolrSong }; // Re-export for compatibility if needed, but better to use from types
 
@@ -7,13 +8,11 @@ export type { SolrSong }; // Re-export for compatibility if needed, but better t
 export const searchSongsExternal = async (query: string): Promise<SolrSong[]> => {
   const targetUrl = `https://solr.sscdn.co/cc/h2/?q=${encodeURIComponent(query)}`;
   // Adding proxy to prevent CORS/NetworkError issues during search
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+  // Adding proxy to prevent CORS/NetworkError issues during search
+  // const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
   
   try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error("Search proxy failed");
-    
-    const text = await response.text();
+    const text = await fetchWithProxy(targetUrl);
     
     // Extract JSON from JSONP-style response "callback({...})"
     const start = text.indexOf('(');

@@ -1,5 +1,6 @@
 
 import { noteToIndex, mapCifraClubKeyToIndex } from "./transposerService";
+import { fetchWithProxy } from "./proxyService";
 
 export interface ProcessedCifra {
   html: string;
@@ -11,31 +12,14 @@ export const fetchCifraClubHtml = async (artistSlug: string, songSlug: string, k
   // Updated per user request to use hash parameters
   const targetUrl = `${baseUrl}#footerChords=false&tabs=true`;
   
-  const timestamp = Date.now();
-  const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}&cache_bust=${timestamp}`,
-    `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${timestamp}`
-  ];
-
-  for (const proxyUrl of proxies) {
-    try {
-      const response = await fetch(proxyUrl);
-      if (!response.ok) continue;
-
-      let htmlContent = '';
-      if (proxyUrl.includes('allorigins')) {
-        const data = await response.json();
-        htmlContent = data.contents;
-      } else {
-        htmlContent = await response.text();
-      }
-
-      if (htmlContent && htmlContent.length > 500) {
-        return processHtml(htmlContent);
-      }
-    } catch (e) {
-      console.warn(`Proxy falhou: ${proxyUrl}`);
+  try {
+    const htmlContent = await fetchWithProxy(targetUrl);
+    
+    if (htmlContent && htmlContent.length > 500) {
+      return processHtml(htmlContent);
     }
+  } catch (e) {
+    console.warn(`Erro ao carregar a cifra:`, e);
   }
 
   throw new Error("Erro ao carregar a cifra.");
@@ -128,31 +112,14 @@ export const fetchCifraClubSetlist = async (url: string): Promise<ProcessedSetli
   // Normalize URL to ensure it's a valid Cifra Club setlist URL is handled by the caller or here if needed.
   // We assume the user pastes a valid URL.
   
-  const timestamp = Date.now();
-  const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(url)}&cache_bust=${timestamp}`,
-    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&timestamp=${timestamp}`
-  ];
+  try {
+    const htmlContent = await fetchWithProxy(url);
 
-  for (const proxyUrl of proxies) {
-    try {
-      const response = await fetch(proxyUrl);
-      if (!response.ok) continue;
-
-      let htmlContent = '';
-      if (proxyUrl.includes('allorigins')) {
-        const data = await response.json();
-        htmlContent = data.contents;
-      } else {
-        htmlContent = await response.text();
-      }
-
-      if (htmlContent && htmlContent.length > 500) {
-        return extractSetlistFromHtml(htmlContent);
-      }
-    } catch (e) {
-      console.warn(`Proxy falhou: ${proxyUrl}`);
+    if (htmlContent && htmlContent.length > 500) {
+      return extractSetlistFromHtml(htmlContent);
     }
+  } catch (e) {
+    console.warn(`Erro ao carregar a setlist:`, e);
   }
 
   throw new Error("Erro ao carregar a setlist.");
